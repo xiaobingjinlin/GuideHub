@@ -1,0 +1,43 @@
+.user-page {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  isolation: isolate;
+  color: var(--ink);
+}
+
+.user-page-atmosphere {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(ellipse 70% 45% at 50% -5%, rgba(15, 118, 110, 0.2), transparent 55%),
+    linear-gradient(165deg, #eef7f2 0%, #d5e8df 100%);
+}
+
+.user-page-header {
+  padding: 1.35rem 1.5rem 0.5rem;
+  text-align: center;
+}
+
+.user-page-header h1 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.7rem;
+  font-weight: 700;
+}
+
+.user-page-body {
+  flex: 1;
+  display: grid;
+  place-items: start center;
+  padding: 1.25rem 1.25rem 2rem;
+}
+
+.user-page-empty {
+  margin: 2rem auto;
+  max-width: 28rem;
+  text-align: center;
+  color: var(--muted);
+}

@@ -1,0 +1,297 @@
+category: python
+label: Python
+examples:
+  - id: calculator
+    title: 计算器
+    ui: calculator
+    notes:
+      - "类（class）：用类把显示值、累计值等状态和操作封装在一起，避免散落的全局变量。"
+      - "math 库：提供 sin/cos/log/pi 等；三角函数按弧度，本例先用 radians 把「度」转成弧度。"
+      - "lambda 表达式：写成 lambda x: ... 的匿名短函数，适合作为一次性参数传给其它函数。"
+      - "高阶函数：像 _unary 这样「接收函数 fn 再调用 fn(value)」的函数，就是高阶函数。"
+      - "@staticmethod：表示该方法不依赖实例状态（不用 self），本质是挂在类上的普通函数。"
+      - "内置函数 abs：abs 是内置函数、无需 import，没有 math.abs（浮点绝对值可用 math.fabs）。"
+      - "友情提示：类中的函数一般叫方法；若它接收或返回函数，则同时仍是高阶函数。"
+    code: |
+      # GuideHub · Python 示例：计算器（简单 + 科学）
+      # 必要说明都写在方法注释里；界面可切换「简单 / 科学」两种按键布局。
+      import math
+
+      class Calculator:
+          """
+          用类把计算器状态集中管理，避免一堆零散变量。
+
+          核心状态：
+          - display     : 屏幕上当前显示的字符串（可能含小数点）
+          - accumulator : 上一次已确认的数值（等待与下一操作数运算）
+          - operator    : 待执行的二元运算符（+ - * / ^），None 表示没有
+          - fresh       : True 表示下一次按数字应「覆盖」屏幕，而不是追加
+          """
+
+          def __init__(self):
+              """初始化 / 重置：屏幕为 0，无累计值、无运算符，等待新输入。"""
+              self.display = "0"       # 用户看到的内容，始终用字符串保存便于拼接
+              self.accumulator = None  # 还没有按下过运算符时为 None
+              self.operator = None     # 例如用户刚按了「+」，这里就是 "+"
+              self.fresh = True        # True：下一次数字会替换屏幕，而不是接在后面
+
+          def input_digit(self, digit: str) -> str:
+              """
+              按下数字键 0–9。
+
+              规则：
+              1. 若 fresh 为 True，或当前显示就是 "0"，则用新数字覆盖（避免 0123 这种前导零）。
+              2. 否则把数字追加到 display 末尾，实现多位数输入。
+              3. 输入后把 fresh 设为 False，后续数字继续追加。
+
+              返回值：更新后的 display，方便界面刷新屏幕。
+              """
+              if self.fresh or self.display == "0":
+                  self.display = digit
+              else:
+                  self.display += digit
+              self.fresh = False
+              return self.display
+
+          def input_dot(self) -> str:
+              """
+              按下小数点「.」。
+
+              规则：
+              1. 若刚算完或刚按过运算符（fresh=True），从 "0." 开始输入小数。
+              2. 同一段数字里只允许一个小数点；已有「.」则忽略本次按键。
+              3. 输入小数点后同样结束 fresh 状态。
+
+              返回值：更新后的 display。
+              """
+              if self.fresh:
+                  self.display = "0."
+                  self.fresh = False
+                  return self.display
+              if "." not in self.display:
+                  self.display += "."
+              return self.display
+
+          def input_operator(self, op: str) -> str:
+              """
+              按下二元运算符：+  -  *  /  ^（幂，对应界面 xʸ）。
+
+              流程：
+              1. 先调用 _commit()：若已有「左操作数 + 运算符」，用当前屏幕数字完成一次运算；
+                 否则把当前屏幕值记入 accumulator。
+              2. 记住本次新按下的运算符，供下一次 _commit / equals 使用。
+              3. 设 fresh=True，让用户接下来输入的数字覆盖屏幕（作为右操作数）。
+
+              参数 op：运算符字符串，须为 "+"、"-"、"*"、"/"、"^" 之一。
+              返回值：_commit 之后的 display（可能已是中间结果）。
+              """
+              self._commit()
+              self.operator = op
+              self.fresh = True
+              return self.display
+
+          def equals(self) -> str:
+              """
+              按下等号「=」：立刻结算当前二元运算。
+
+              流程：
+              1. _commit() 用 accumulator、operator、当前 display 算出最终结果。
+              2. 清空 operator（运算已结束，不再挂着「待算」状态）。
+              3. 设 fresh=True，下一次输入从新数字开始。
+
+              返回值：最终结果显示字符串。
+              """
+              self._commit()
+              self.operator = None
+              self.fresh = True
+              return self.display
+
+          def clear(self) -> str:
+              """
+              按下清除键「C」：恢复到刚创建对象时的初始状态。
+
+              实现上直接再调一次 __init__，保证四个状态字段全部复位。
+              返回值：复位后的 display（"0"）。
+              """
+              self.__init__()
+              return self.display
+
+          # —— 以下为科学计算：对「当前屏幕值」做一元运算；角度使用「度」而非弧度 ——
+
+          def sin(self) -> str:
+              """
+              正弦：把当前 display 当作角度（度），计算 sin。
+
+              例：display="30" → 约 0.5。
+              内部先把度转成弧度再交给 math.sin（Python 标准库使用弧度）。
+              """
+              return self._unary("sin", lambda x: math.sin(math.radians(x)))
+
+          def cos(self) -> str:
+              """
+              余弦：当前 display 为角度（度），计算 cos。
+
+              例：display="60" → 0.5。
+              """
+              return self._unary("cos", lambda x: math.cos(math.radians(x)))
+
+          def tan(self) -> str:
+              """
+              正切：当前 display 为角度（度），计算 tan。
+
+              例：display="45" → 1。
+              注意：接近 90°、270° 等时结果会非常大或溢出，_fmt 可能显示 Error。
+              """
+              return self._unary("tan", lambda x: math.tan(math.radians(x)))
+
+          def ln(self) -> str:
+              """
+              自然对数 ln(x)，底数为 e。
+
+              要求 x > 0；非正数时 math.log 会异常/得到无效值，最终可能显示 Error。
+              例：先 const_e() 再 ln() → 1。
+              """
+              return self._unary("ln", math.log)
+
+          def log10(self) -> str:
+              """
+              常用对数 log10(x)，底数为 10。
+
+              要求 x > 0。例：display="100" → 2。
+              """
+              return self._unary("log", math.log10)
+
+          def sqrt(self) -> str:
+              """
+              平方根 √x。
+
+              要求 x ≥ 0；负数会得到无效结果并可能显示 Error。
+              例：display="9" → 3。
+              """
+              return self._unary("√", math.sqrt)
+
+          def square(self) -> str:
+              """
+              平方 x²，即 x * x。
+
+              例：display="5" → 25。
+              """
+              return self._unary("x²", lambda x: x * x)
+
+          def reciprocal(self) -> str:
+              """
+              倒数 1/x。
+
+              x 为 0 时除零，结果无效，界面侧会显示 Error。
+              例：display="4" → 0.25。
+              """
+              return self._unary("1/x", lambda x: 1 / x)
+
+          def abs(self) -> str:
+              """
+              绝对值 |x|：负数变正，非负保持不变。
+
+              例：display="-7" → 7。
+              """
+              return self._unary("|x|", abs)
+
+          def const_pi(self) -> str:
+              """
+              写入圆周率常量 π（约 3.141592653589793）。
+
+              直接覆盖 display，并设 fresh=True，便于接着做一元运算或当作操作数。
+              返回值：格式化后的 π 字符串。
+              """
+              self.display = self._fmt(math.pi)
+              self.fresh = True
+              return self.display
+
+          def const_e(self) -> str:
+              """
+              写入自然常数 e（约 2.718281828459045）。
+
+              用法同 const_pi：覆盖屏幕，准备后续运算。
+              """
+              self.display = self._fmt(math.e)
+              self.fresh = True
+              return self.display
+
+          def _unary(self, _name, fn) -> str:
+              """
+              一元运算的公共实现（内部方法，以下划线开头表示「给本类用」）。
+
+              步骤：
+              1. 把当前 display 转成 float。
+              2. 调用传入的 fn(value) 得到结果。
+              3. 用 _fmt 格式化写回 display。
+              4. 同步 accumulator，清空 operator，设 fresh=True，
+                 这样结果可以直接参与下一步，或被新数字覆盖。
+
+              参数：
+              - _name : 函数名，仅用于注释/调试对应（界面表达式另有展示逻辑）
+              - fn    : 接收一个 float、返回一个 float 的可调用对象
+              """
+              value = float(self.display)
+              self.display = self._fmt(fn(value))
+              self.accumulator = float(self.display) if self.display != "Error" else None
+              self.operator = None
+              self.fresh = True
+              return self.display
+
+          def _commit(self):
+              """
+              尝试完成一次「挂起的」二元运算（内部方法）。
+
+              两种情况：
+              A. 还没有 accumulator 或还没有 operator：
+                 只是把当前屏幕值记入 accumulator（首次按运算符时常见）。
+              B. 已有左值与运算符：
+                 用 accumulator（左）和当前 display（右）按 operator 计算，
+                 写回 accumulator；支持 + - * / ^。
+                 除数为 0 时写入 nan，后续 _fmt 会变成 "Error"。
+
+              最后把 accumulator 格式化到 display，供屏幕显示中间/最终结果。
+              """
+              value = float(self.display)
+              if self.accumulator is None or self.operator is None:
+                  self.accumulator = value
+              else:
+                  a, b, op = self.accumulator, value, self.operator
+                  if op == "+":
+                      self.accumulator = a + b
+                  elif op == "-":
+                      self.accumulator = a - b
+                  elif op == "*":
+                      self.accumulator = a * b
+                  elif op == "/":
+                      self.accumulator = a / b if b != 0 else float("nan")
+                  elif op == "^":
+                      self.accumulator = a ** b
+              self.display = self._fmt(self.accumulator)
+
+          @staticmethod
+          def _fmt(n) -> str:
+              """
+              把数值格式化成适合显示的字符串（静态方法：不依赖 self）。
+
+              规则：
+              1. NaN 或 ±Inf → "Error"（运算失败时的统一展示）。
+              2. 若数值等于其整数形式（如 3.0）→ 显示 "3"，去掉无意义的 .0。
+              3. 否则保留小数形式字符串。
+
+              注意：这里不是「截断取整」，而是结果本来就是整数时的美观显示。
+              """
+              if n != n or n in (float("inf"), float("-inf")):
+                  return "Error"
+              return str(int(n)) if float(n) == int(n) else str(n)
+
+
+      # 控制台仅在「发生计算」时输出（数字/小数点不输出）。
+      # 更多按键示例见《操作手册.md》。
+
+      if __name__ == "__main__":
+          # 本地快速自检：sin(30°) 应为 0.5
+          c = Calculator()
+          c.input_digit("3")
+          c.input_digit("0")
+          print(c.sin())  # -> 0.5

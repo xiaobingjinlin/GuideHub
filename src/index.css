@@ -1,0 +1,47 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500;600&family=Outfit:wght@400;500;600;700&display=swap');
+
+:root {
+  --ink: #15231f;
+  --muted: #5b6f68;
+  --foam: #e8f1ec;
+  --surface: rgba(255, 255, 255, 0.78);
+  --accent: #0f766e;
+  --accent-deep: #0b5f59;
+  --line: rgba(21, 35, 31, 0.1);
+  --font-display: 'Fraunces', 'Times New Roman', serif;
+  --font-sans: 'Outfit', 'Helvetica Neue', sans-serif;
+  --font-mono: 'IBM Plex Mono', 'Menlo', monospace;
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  min-width: 320px;
+  background: #d9ebe3;
+}
+
+button,
+textarea {
+  font: inherit;
+}
+
+#root {
+  min-height: 100vh;
+}
