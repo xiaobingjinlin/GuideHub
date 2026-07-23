@@ -1,10 +1,10 @@
 .concurrency {
-  width: min(100%, 640px);
+  width: min(100%, 780px);
   margin: 0 auto;
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0.95rem;
   animation: concurrency-in 0.45s ease both;
 }
 
@@ -22,18 +22,21 @@
 }
 
 .concurrency-title {
-  margin: 0.45rem 0 0;
+  margin: 0.4rem 0 0;
   font-family: var(--font-display);
-  font-size: clamp(1.55rem, 3vw, 1.9rem);
+  font-size: clamp(1.4rem, 2.6vw, 1.75rem);
   font-weight: 700;
   letter-spacing: -0.02em;
   line-height: 1.15;
 }
 
 .concurrency-subtitle {
-  margin: 0.45rem 0 0;
+  margin: 0.4rem 0 0;
   color: var(--muted);
-  font-size: 0.98rem;
+  font-size: 0.92rem;
+  line-height: 1.45;
+  max-width: 36rem;
+  margin-inline: auto;
 }
 
 .concurrency-toolbar {
@@ -59,7 +62,7 @@
 }
 
 .concurrency-cta {
-  padding: 0.8rem 1.55rem;
+  padding: 0.75rem 1.45rem;
   border-radius: 12px;
   background: var(--ink);
   color: #fff;
@@ -72,7 +75,7 @@
 }
 
 .concurrency-reset {
-  padding: 0.75rem 1rem;
+  padding: 0.7rem 1rem;
   border-radius: 12px;
   background: transparent;
   color: var(--muted);
@@ -93,19 +96,21 @@
 }
 
 .concurrency-lanes {
-  display: flex;
-  flex-direction: column;
-  gap: 0.7rem;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
 }
 
 .concurrency-lane {
   position: relative;
-  padding: 0.85rem 1rem 0.8rem;
+  padding: 0.9rem 1rem 0.75rem;
   border-radius: 16px;
   background: rgba(255, 255, 255, 0.55);
   border: 1px solid rgba(21, 35, 31, 0.08);
   backdrop-filter: blur(8px);
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
   animation: concurrency-rise 0.5s ease both;
 }
 
@@ -117,20 +122,28 @@
   background: #94a3b8;
 }
 
+.concurrency-lane.mode-processes::before {
+  background: #0284c7;
+}
+
 .concurrency-lane.mode-threads::before {
   background: #0f766e;
 }
 
-.concurrency-lane.mode-processes::before {
-  background: #0284c7;
+.concurrency-lane.mode-coroutines::before {
+  background: #c2410c;
+}
+
+.concurrency-cpu .concurrency-lane.mode-processes::before {
+  background: #0f766e;
 }
 
 .concurrency-cpu .concurrency-lane.mode-threads::before {
   background: #ca8a04;
 }
 
-.concurrency-cpu .concurrency-lane.mode-processes::before {
-  background: #0f766e;
+.concurrency-cpu .concurrency-lane.mode-coroutines::before {
+  background: #b45309;
 }
 
 .concurrency-lane.is-running {
@@ -147,57 +160,84 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 1rem;
-  margin-bottom: 0.75rem;
+  gap: 0.75rem;
+  margin-bottom: 0.7rem;
+}
+
+.concurrency-lane-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  min-width: 0;
+}
+
+.concurrency-lane-index {
+  flex-shrink: 0;
+  margin-top: 0.12rem;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--accent-deep);
+  background: rgba(15, 118, 110, 0.1);
+  border: 1px solid rgba(15, 118, 110, 0.16);
+  border-radius: 999px;
+  padding: 0.18rem 0.45rem;
+  line-height: 1.2;
+}
+
+.concurrency-lane.mode-serial .concurrency-lane-index {
+  color: #64748b;
+  background: rgba(100, 116, 139, 0.1);
+  border-color: rgba(100, 116, 139, 0.18);
 }
 
 .concurrency-lane-top h2 {
   margin: 0;
-  font-size: 1.05rem;
+  font-size: 1.02rem;
   font-weight: 700;
 }
 
 .concurrency-lane-top p {
-  margin: 0.2rem 0 0;
-  font-size: 0.82rem;
+  margin: 0.18rem 0 0;
+  font-size: 0.78rem;
   color: var(--muted);
 }
 
 .concurrency-lane-meta {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.4rem;
   flex-shrink: 0;
 }
 
 .concurrency-badge {
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--accent-deep);
   background: rgba(15, 118, 110, 0.12);
   border: 1px solid rgba(15, 118, 110, 0.2);
-  padding: 0.22rem 0.45rem;
+  padding: 0.2rem 0.4rem;
   border-radius: 8px;
   animation: concurrency-pop 0.35s ease both;
 }
 
 .concurrency-time {
   font-family: var(--font-mono);
-  font-size: 1.15rem;
+  font-size: 1.1rem;
   font-weight: 600;
   color: var(--ink);
-  min-width: 4.2rem;
+  min-width: 3.8rem;
   text-align: right;
 }
 
 .concurrency-track {
-  height: 10px;
+  height: 9px;
   border-radius: 8px;
   background: rgba(21, 35, 31, 0.08);
   overflow: hidden;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.55rem;
 }
 
 .concurrency-fill {
@@ -208,20 +248,28 @@
   transition: width 0.08s linear;
 }
 
+.concurrency-lane.mode-processes .concurrency-fill {
+  background: linear-gradient(90deg, #38bdf8, #0284c7);
+}
+
 .concurrency-lane.mode-threads .concurrency-fill {
   background: linear-gradient(90deg, #14b8a6, #0f766e);
 }
 
-.concurrency-lane.mode-processes .concurrency-fill {
-  background: linear-gradient(90deg, #38bdf8, #0284c7);
+.concurrency-lane.mode-coroutines .concurrency-fill {
+  background: linear-gradient(90deg, #fb923c, #c2410c);
+}
+
+.concurrency-cpu .concurrency-lane.mode-processes .concurrency-fill {
+  background: linear-gradient(90deg, #14b8a6, #0f766e);
 }
 
 .concurrency-cpu .concurrency-lane.mode-threads .concurrency-fill {
   background: linear-gradient(90deg, #fbbf24, #ca8a04);
 }
 
-.concurrency-cpu .concurrency-lane.mode-processes .concurrency-fill {
-  background: linear-gradient(90deg, #14b8a6, #0f766e);
+.concurrency-cpu .concurrency-lane.mode-coroutines .concurrency-fill {
+  background: linear-gradient(90deg, #fdba74, #b45309);
 }
 
 .concurrency-lane.is-running .concurrency-fill {
@@ -229,10 +277,12 @@
 }
 
 .concurrency-lane-run {
+  align-self: flex-start;
   background: transparent;
   color: var(--accent-deep);
-  font-size: 0.82rem;
-  padding: 0.2rem 0;
+  font-size: 0.8rem;
+  padding: 0.15rem 0;
+  margin-top: auto;
 }
 
 .concurrency-lane-run:hover:not(:disabled) {
@@ -242,8 +292,9 @@
 .concurrency-expect {
   margin: 0;
   text-align: center;
-  font-size: 0.88rem;
+  font-size: 0.86rem;
   color: var(--muted);
+  line-height: 1.45;
 }
 
 .concurrency-error {
@@ -296,10 +347,14 @@
   }
 }
 
-@media (max-width: 520px) {
+@media (max-width: 640px) {
+  .concurrency-lanes {
+    grid-template-columns: 1fr;
+  }
+
   .concurrency-lane-top {
     flex-direction: column;
-    gap: 0.45rem;
+    gap: 0.4rem;
   }
 
   .concurrency-time {

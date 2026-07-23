@@ -380,22 +380,90 @@ examples:
           # 示例 2：ratings = [1,2,2] → 分配 [1,2,1]，总和 4
           # （中间与右边评分相等，右边可以比中间少）
           print(s.candy([1, 2, 2]))  # 4
-  - id: concurrency-io
-    title: 多线程与多进程-IO密集型
-    ui: concurrency
-    kind: io
+  - id: sync-async
+    title: 同步与异步
+    ui: sync-async
     window:
       width: 720
       height: 820
     notes:
-      - "多线程适合 IO 密集：等待时可切换线程，CPU 利用率通常高于纯顺序执行。"
-      - "time 模块：本例用 time.sleep 模拟阻塞 IO 等待，便于对比三种执行方式的耗时。"
+      - "asyncio 模块：用协程与事件循环编写并发，适合大量等待型（IO）任务。"
+      - "async def / await：定义协程并用 await 挂起等待；挂起期间事件循环可调度其它任务。"
+      - "asyncio.sleep：异步等待，不阻塞整个线程；对照 time.sleep 会堵住当前线程。"
+      - "asyncio.gather：并发调度多个协程，等全部完成；等待可重叠，总耗时接近最慢的那个。"
+      - "* 解包：任务个数不定时用 *(...) 把可迭代对象拆成位置参数传给 gather。"
+      - "return_exceptions=True：某个子任务失败不影响全局，异常作为结果返回，便于一并处理。"
+      - "asyncio.run：启动事件循环并跑完一个入口协程，适合脚本里启动异步主流程。"
+    code: |
+      # GuideHub · 同步与异步
+      # 对比：同一批「等待型」任务，同步串行 vs asyncio 并发。
+      import asyncio
+      import time
+
+      TASK_COUNT = 3
+      IO_SLEEP = 0.5
+
+
+      def fetch_sync(task_id: int) -> str:
+          """同步等待：time.sleep 会阻塞当前线程。"""
+          time.sleep(IO_SLEEP)
+          return f"sync-task-{task_id}-done"
+
+
+      async def fetch_async(task_id: int) -> str:
+          """异步等待：asyncio.sleep 挂起协程，事件循环可去跑别的任务。"""
+          await asyncio.sleep(IO_SLEEP)
+          return f"async-task-{task_id}-done"
+
+
+      def run_sync() -> None:
+          """一个接一个：总耗时 ≈ TASK_COUNT × IO_SLEEP。"""
+          for i in range(TASK_COUNT):
+              print(f"同步任务-{i + 1}：开始")
+              fetch_sync(i)
+              print(f"同步任务-{i + 1}：完成")
+
+
+      async def run_async() -> None:
+          """gather 并发：总耗时 ≈ 一次 IO_SLEEP。"""
+          print("异步：同时调度全部任务 …")
+          # return_exceptions=True：某个任务失败时不打断其它任务，异常作为结果返回
+          await asyncio.gather(
+              *(fetch_async(i) for i in range(TASK_COUNT)),
+              return_exceptions=True,
+          )
+          print("异步：全部完成")
+
+
+      if __name__ == "__main__":
+          print("=== 同步 ===")
+          t0 = time.perf_counter()
+          run_sync()
+          print(f"同步耗时 {time.perf_counter() - t0:.2f}s")
+
+          print("=== 异步 ===")
+          t1 = time.perf_counter()
+          asyncio.run(run_async())
+          print(f"异步耗时 {time.perf_counter() - t1:.2f}s")
+
+  - id: concurrency-io
+    title: 进程、线程和协程-IO密集型
+    ui: concurrency
+    kind: io
+    window:
+      width: 860
+      height: 760
+    notes:
+      - "多线程适合 IO 密集：等待时可切换线程，整体通常快于纯顺序执行。"
+      - "多协程适合 IO 密集：等待可重叠，耗时往往接近多线程；任务少时与多线程几乎一样，几十以上任务时协程开销优势才更明显。"
+      - "time 模块：本例用 sleep 模拟等待，便于对比四种执行方式的耗时。"
       - "time.perf_counter()：适合测量时间间隔，用结束时刻减开始时刻得到耗时。"
-      - "ThreadPoolExecutor / ProcessPoolExecutor：分别是线程池与进程池，接口相近便于对照。"
+      - "ThreadPoolExecutor / ProcessPoolExecutor：线程池与进程池，接口相近便于对照。"
       - "with：离开代码块时自动关闭线程池/进程池，无需手写繁琐的启停逻辑。"
       - "list(pool.map(...))：map 返回惰性迭代器；list 强制取完所有结果，确保计时覆盖全部任务。"
     code: |
-      # 对比：顺序执行 / 多线程 / 多进程 完成同一批「等待型」任务的耗时。
+      # 对比：多进程 / 多线程 / 多协程 / 顺序执行 —— 同一批「等待型」任务。
+      import asyncio
       import time
       from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 
@@ -406,6 +474,12 @@ examples:
       def io_bound_task(task_id: int) -> str:
           """模拟一次阻塞 IO：真正干活少，大部分时间在等。"""
           time.sleep(IO_SLEEP)
+          return f"io-task-{task_id}-done"
+
+
+      async def io_bound_coro(task_id: int) -> str:
+          """异步等待：挂起协程，事件循环可去跑别的任务。"""
+          await asyncio.sleep(IO_SLEEP)
           return f"io-task-{task_id}-done"
 
 
@@ -431,31 +505,43 @@ examples:
           """多进程：也能并行等待，但进程比线程更重。"""
           t0 = time.perf_counter()
           with ProcessPoolExecutor(max_workers=WORKERS) as pool:
-              # 同上：list 强制等全部进程任务结束，再结束 with（关闭进程池）
               list(pool.map(io_bound_task, range(WORKERS)))
+          return time.perf_counter() - t0
+
+
+      async def run_coroutines() -> float:
+          """多协程：gather 并发等待，总耗时接近一次 sleep。"""
+          t0 = time.perf_counter()
+          await asyncio.gather(
+              *(io_bound_coro(i) for i in range(WORKERS)),
+              return_exceptions=True,
+          )
           return time.perf_counter() - t0
 
 
       if __name__ == "__main__":
           # 多进程在 Windows/macOS 上常用 spawn，必须放在 main 保护下
-          print(f"serial   : {run_serial():.2f}s")
-          print(f"threads  : {run_threads():.2f}s")
-          print(f"processes: {run_processes():.2f}s")
+          print(f"processes : {run_processes():.2f}s")
+          print(f"threads   : {run_threads():.2f}s")
+          print(f"coroutines: {asyncio.run(run_coroutines()):.2f}s")
+          print(f"serial    : {run_serial():.2f}s")
   - id: concurrency-cpu
-    title: 多线程与多进程-CPU密集型
+    title: 进程、线程和协程-CPU密集型
     ui: concurrency
     kind: cpu
     window:
-      width: 720
-      height: 820
+      width: 860
+      height: 760
     notes:
       - "GIL：CPython 同一时刻通常只有一个线程执行字节码，CPU 密集时多线程往往难吃满多核。"
-      - "多进程适合 CPU 密集：各进程可并行使用多核，通常比多线程更快（但创建与通信更重）。"
+      - "多进程适合 CPU 密集：各进程可并行使用多核，通常比多线程 / 多协程更快。"
+      - "多协程不擅长 CPU 密集：无让出时近乎串行，耗时往往接近顺序执行。"
       - "ThreadPoolExecutor / ProcessPoolExecutor：本例用二者对照，观察 GIL 对耗时的影响。"
       - "with：离开代码块时自动关闭线程池/进程池，无需手写繁琐的启停逻辑。"
       - "list(pool.map(...))：map 返回惰性迭代器；list 强制取完所有结果，确保计时覆盖全部任务。"
     code: |
-      # 对比：顺序执行 / 多线程 / 多进程 完成同一批「纯计算」任务的耗时。
+      # 对比：多进程 / 多线程 / 多协程 / 顺序执行 —— 同一批「纯计算」任务。
+      import asyncio
       import time
       from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 
@@ -471,6 +557,11 @@ examples:
           return total + task_id
 
 
+      async def cpu_bound_coro(task_id: int) -> int:
+          """无 await：不会让出事件循环，gather 后近乎串行。"""
+          return cpu_bound_task(task_id)
+
+
       def run_serial() -> float:
           """顺序执行：计算一个接一个。"""
           t0 = time.perf_counter()
@@ -483,8 +574,6 @@ examples:
           """多线程：受 GIL 影响，CPU 密集往往加速不明显。"""
           t0 = time.perf_counter()
           with ThreadPoolExecutor(max_workers=WORKERS) as pool:
-              # pool.map 返回迭代器（惰性）：只迭代时才会等任务完成并取回结果
-              # 外包 list(...)：立刻消费全部结果，确保计时包含「全部任务跑完」
               list(pool.map(cpu_bound_task, range(WORKERS)))
           return time.perf_counter() - t0
 
@@ -493,15 +582,25 @@ examples:
           """多进程：多核并行，通常明显更快。"""
           t0 = time.perf_counter()
           with ProcessPoolExecutor(max_workers=WORKERS) as pool:
-              # 同上：list 强制等全部进程任务结束，再结束 with（关闭进程池）
               list(pool.map(cpu_bound_task, range(WORKERS)))
           return time.perf_counter() - t0
 
 
+      async def run_coroutines() -> float:
+          """多协程：纯计算且无 await 时，耗时接近顺序执行。"""
+          t0 = time.perf_counter()
+          await asyncio.gather(
+              *(cpu_bound_coro(i) for i in range(WORKERS)),
+              return_exceptions=True,
+          )
+          return time.perf_counter() - t0
+
+
       if __name__ == "__main__":
-          print(f"serial   : {run_serial():.2f}s")
-          print(f"threads  : {run_threads():.2f}s")
-          print(f"processes: {run_processes():.2f}s")
+          print(f"processes : {run_processes():.2f}s")
+          print(f"threads   : {run_threads():.2f}s")
+          print(f"coroutines: {asyncio.run(run_coroutines()):.2f}s")
+          print(f"serial    : {run_serial():.2f}s")
 
   - id: main-child-thread
     title: 主线程与子线程
@@ -575,3 +674,65 @@ examples:
           print("=== 方式 B：主子线程 ===")
           run_main_child()
 
+
+  - id: file-io
+    title: 文件读写
+    ui: file-io
+    window:
+      width: 560
+      height: 720
+    notes:
+      - "Path(__file__).resolve().parent：当前 py 文件绝对路径的父目录；用 / 可拼接子路径或文件名。"
+      - "with open(...)：进入时打开文件流，离开代码块自动关闭，不必手写 f.close()。"
+      - "打开模式：r 读、w 写（覆盖）、a 追加。"
+      - "encoding=\"utf-8\"：读写文本时建议指定，避免中文乱码。"
+    code: |
+      # GuideHub · 文件读写
+      # 用 with + open() 读写文本；文件落在磁盘，刷新页面后内容仍在。
+      from pathlib import Path
+
+      FILE_PATH = Path(__file__).resolve().parent / "memo.txt"
+      LINE = "GuideHub：用 with 和 open() 读写文件。"
+
+
+      def read_content() -> str:
+          """读取全部内容；文件不存在则先创建空文件。"""
+          if not FILE_PATH.exists():
+              with open(FILE_PATH, "w", encoding="utf-8") as f:
+                  f.write("")
+          with open(FILE_PATH, "r", encoding="utf-8") as f:
+              return f.read()
+
+
+      def append_line(line: str = LINE) -> str:
+          """
+          追加一句话：
+          - 第一段：直接写入
+          - 已有内容：与上一段空一行
+          """
+          current = read_content()
+          if current.strip() == "":
+              new_content = line
+          else:
+              new_content = current.rstrip("\n") + "\n\n" + line
+          with open(FILE_PATH, "w", encoding="utf-8") as f:
+              f.write(new_content)
+          return new_content
+
+
+      def reset_content() -> None:
+          """清空文件并保存。"""
+          with open(FILE_PATH, "w", encoding="utf-8") as f:
+              f.write("")
+
+
+      if __name__ == "__main__":
+          print("当前内容：")
+          print(repr(read_content()))
+          print("--- 写入 ---")
+          print(append_line())
+          print("--- 再写入（中间空一行）---")
+          print(append_line())
+          print("--- 重置 ---")
+          reset_content()
+          print(repr(read_content()))

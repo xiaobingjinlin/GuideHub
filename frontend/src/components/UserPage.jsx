@@ -4,14 +4,21 @@ import { postSessionEvent, postUserLog } from '../lib/runtimeChannel'
 import Calculator from './Calculator'
 import Candy from './Candy'
 import Concurrency from './Concurrency'
+import FileIO from './FileIO'
 import MainChildThread from './MainChildThread'
+import SyncAsync from './SyncAsync'
 import './UserPage.css'
+
+const RACE_UIS = new Set(['concurrency', 'main-child-thread', 'sync-async'])
+const CUSTOM_HERO_UIS = new Set([...RACE_UIS, 'file-io'])
 
 const UI_MAP = {
   calculator: Calculator,
   candy: Candy,
   concurrency: Concurrency,
   'main-child-thread': MainChildThread,
+  'sync-async': SyncAsync,
+  'file-io': FileIO,
 }
 
 export default function UserPage({ categoryId, exampleId }) {
@@ -42,9 +49,9 @@ export default function UserPage({ categoryId, exampleId }) {
   const UserUI = UI_MAP[example.ui] || null
 
   return (
-    <div className={`user-page ${example.ui === 'concurrency' || example.ui === 'main-child-thread' ? 'is-concurrency' : ''}`}>
+    <div className={`user-page ${RACE_UIS.has(example.ui) ? 'is-concurrency' : ''}`}>
       <div className="user-page-atmosphere" aria-hidden="true" />
-      {example.ui !== 'concurrency' && example.ui !== 'main-child-thread' && (
+      {!CUSTOM_HERO_UIS.has(example.ui) && (
         <header className="user-page-header">
           <h1>{example.title}</h1>
         </header>

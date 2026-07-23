@@ -46,3 +46,28 @@ export function postMainChildThread(mode) {
     body: JSON.stringify({ mode }),
   })
 }
+
+export function postSyncAsync(mode) {
+  return request("/api/sync-async/run", {
+    method: "POST",
+    body: JSON.stringify({ mode }),
+  })
+}
+
+export function getFileIoContent() {
+  return request("/api/file-io/content")
+}
+
+export function postFileIoAppend(line) {
+  return request("/api/file-io/append", {
+    method: "POST",
+    body: JSON.stringify(line ? { line } : {}),
+  })
+}
+
+export function postFileIoReset() {
+  return request("/api/file-io/reset", {
+    method: "POST",
+    body: JSON.stringify({}),
+  })
+}

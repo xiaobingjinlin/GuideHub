@@ -1,40 +1,32 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { postConcurrency } from '../lib/api'
+import { postSyncAsync } from '../lib/api'
 import './Concurrency.css'
 
 const BAR_MAX_MS = 3000
 
-const CONFIG = {
-  io: {
-    eyebrow: 'IO 密集型',
-    subtitle: '等待可重叠时：进程 / 线程 / 协程都能明显快过顺序执行',
-    expect: '预期：多协程 ≈ 多线程 ≈ 多进程 ≪ 顺序执行',
-  },
-  cpu: {
-    eyebrow: 'CPU 密集型',
-    subtitle: '纯计算时：多进程吃多核；线程与协程往往接近顺序',
-    expect: '预期：多进程 ≪ 多线程 ≈ 多协程 ≈ 顺序执行',
-  },
-}
-
-/** 页面顺序：进程 → 线程 → 协程 → 顺序（对照基线） */
 const MODE_META = {
-  processes: { label: '多进程', hint: 'ProcessPoolExecutor', tag: '进程' },
-  threads: { label: '多线程', hint: 'ThreadPoolExecutor', tag: '线程' },
-  coroutines: { label: '多协程', hint: 'asyncio.gather', tag: '协程' },
-  serial: { label: '顺序执行', hint: '一个接一个', tag: '对照' },
+  sync: {
+    label: '同步',
+    hint: 'time.sleep 一个接一个，耗时相加',
+  },
+  async: {
+    label: '异步',
+    hint: 'asyncio.sleep + gather，等待可重叠',
+  },
 }
 
-const MODE_KEYS = ['processes', 'threads', 'coroutines', 'serial']
-const EMPTY_RESULTS = { processes: null, threads: null, coroutines: null, serial: null }
-const EMPTY_PROGRESS = { processes: 0, threads: 0, coroutines: 0, serial: 0 }
+const MODE_KEYS = ['sync', 'async']
+const EMPTY_RESULTS = { sync: null, async: null }
+const EMPTY_PROGRESS = { sync: 0, async: 0 }
 
 function toBarPercent(elapsedMs) {
   return Math.min(100, (elapsedMs / BAR_MAX_MS) * 100)
 }
 
-export default function Concurrency({ onLog, kind = 'io', title }) {
-  const scenario = CONFIG[kind] || CONFIG.io
+/**
+ * 同步 vs 异步：布局参考示例三。
+ */
+export default function SyncAsync({ onLog, title }) {
   const [running, setRunning] = useState(null)
   const [results, setResults] = useState(EMPTY_RESULTS)
   const [progress, setProgress] = useState(EMPTY_PROGRESS)
@@ -52,7 +44,7 @@ export default function Concurrency({ onLog, kind = 'io', title }) {
 
   const winner = useMemo(() => {
     const entries = MODE_KEYS.map((k) => [k, results[k]]).filter(([, v]) => v != null)
-    if (entries.length < 4) return null
+    if (entries.length < 2) return null
     return entries.reduce((best, cur) => (cur[1] < best[1] ? cur : best))[0]
   }, [results])
 
@@ -82,12 +74,12 @@ export default function Concurrency({ onLog, kind = 'io', title }) {
     setRunning(modeKey)
     setProgress((prev) => ({ ...prev, [modeKey]: 0 }))
 
-    onLog?.(`—— 开始：${meta.label}（${scenario.eyebrow}）——`)
+    onLog?.(`—— 开始：${meta.label} ——`)
     const t0 = performance.now()
     startProgressTick(modeKey, t0)
 
     try {
-      const data = await postConcurrency(kind, modeKey)
+      const data = await postSyncAsync(modeKey)
       stopProgressTick()
       if (runId !== runIdRef.current) {
         busyRef.current = false
@@ -95,8 +87,7 @@ export default function Concurrency({ onLog, kind = 'io', title }) {
       }
       for (const line of data.logs || []) onLog?.(line)
       const elapsedSec = Number(data.elapsed)
-      const finalPct = toBarPercent(elapsedSec * 1000)
-      setProgress((prev) => ({ ...prev, [modeKey]: finalPct }))
+      setProgress((prev) => ({ ...prev, [modeKey]: toBarPercent(elapsedSec * 1000) }))
       setResults((prev) => ({ ...prev, [modeKey]: elapsedSec }))
       onLog?.(`${meta.label} 结束，耗时 ${elapsedSec.toFixed(2)}s（后端实测）`)
     } catch (err) {
@@ -117,7 +108,7 @@ export default function Concurrency({ onLog, kind = 'io', title }) {
     if (busyRef.current) return
     setResults({ ...EMPTY_RESULTS })
     setProgress({ ...EMPTY_PROGRESS })
-    onLog?.(`======== 开始完整对比：${scenario.eyebrow} ========`)
+    onLog?.('======== 开始对比：同步 vs 异步 ========')
     for (const key of MODE_KEYS) {
       await runMode(key)
     }
@@ -136,11 +127,13 @@ export default function Concurrency({ onLog, kind = 'io', title }) {
   }
 
   return (
-    <div className={`concurrency concurrency-${kind}`}>
+    <div className="concurrency concurrency-io">
       <header className="concurrency-hero">
-        <p className="concurrency-eyebrow">{scenario.eyebrow}</p>
-        <h1 className="concurrency-title">{title || '进程、线程和协程'}</h1>
-        <p className="concurrency-subtitle">{scenario.subtitle}</p>
+        <p className="concurrency-eyebrow">asyncio</p>
+        <h1 className="concurrency-title">{title || '同步与异步'}</h1>
+        <p className="concurrency-subtitle">
+          同一批等待型任务：对比同步串行与异步并发的耗时差异
+        </p>
       </header>
 
       <div className="concurrency-toolbar">
@@ -167,22 +160,19 @@ export default function Concurrency({ onLog, kind = 'io', title }) {
               key={key}
               className={[
                 'concurrency-lane',
-                `mode-${key}`,
+                `mode-${key === 'sync' ? 'serial' : 'threads'}`,
                 isRunning ? 'is-running' : '',
                 isWinner ? 'is-winner' : '',
               ].join(' ')}
-              style={{ animationDelay: `${index * 55}ms` }}
+              style={{ animationDelay: `${index * 60}ms` }}
             >
               <div className="concurrency-lane-top">
-                <div className="concurrency-lane-heading">
-                  <span className="concurrency-lane-index">{meta.tag}</span>
-                  <div>
-                    <h2>{meta.label}</h2>
-                    <p>{meta.hint}</p>
-                  </div>
+                <div>
+                  <h2>{meta.label}</h2>
+                  <p>{meta.hint}</p>
                 </div>
                 <div className="concurrency-lane-meta">
-                  {isWinner && <span className="concurrency-badge">最快</span>}
+                  {isWinner && <span className="concurrency-badge">更快</span>}
                   <span className="concurrency-time">
                     {isRunning ? '…' : value == null ? '—' : `${value.toFixed(2)}s`}
                   </span>
@@ -206,7 +196,9 @@ export default function Concurrency({ onLog, kind = 'io', title }) {
         })}
       </div>
 
-      <p className="concurrency-expect">{scenario.expect}（进度条满格 = 3 秒）</p>
+      <p className="concurrency-expect">
+        预期：异步 ≪ 同步（3 次等待重叠 vs 相加；进度条满格 = 3 秒）
+      </p>
     </div>
   )
 }

@@ -7,7 +7,7 @@ router = APIRouter()
 
 
 class ConcurrencyRequest(BaseModel):
-    mode: str = Field(..., pattern="^(serial|threads|processes)$")
+    mode: str = Field(..., pattern="^(serial|threads|processes|coroutines)$")
 
 
 @router.post("/io")

@@ -1,10 +1,12 @@
 """
-多线程与多进程 —— IO / CPU 密集对比。
-函数名与教程示例对齐：io_bound_task / cpu_bound_task / run_serial / run_threads / run_processes
+进程、线程和协程 —— IO / CPU 密集对比。
+函数名与教程示例对齐：io_bound_task / cpu_bound_task /
+run_serial / run_threads / run_processes / run_coroutines
 """
 
 from __future__ import annotations
 
+import asyncio
 import time
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 
@@ -27,7 +29,21 @@ def cpu_bound_task(task_id: int) -> int:
     return total + task_id
 
 
-def _run_serial(task, label_prefix: str) -> tuple[float, list[str]]:
+async def io_bound_coro(task_id: int) -> str:
+    """异步等待：挂起协程，事件循环可调度其它任务。"""
+    await asyncio.sleep(IO_SLEEP)
+    return f"io-task-{task_id}-done"
+
+
+async def cpu_bound_coro(task_id: int) -> int:
+    """
+    CPU 协程：内部无 await，不会让出事件循环。
+    gather 后实际近乎串行，用来对照「协程不擅长纯计算」。
+    """
+    return cpu_bound_task(task_id)
+
+
+def _run_serial(task) -> tuple[float, list[str]]:
     logs = [f"顺序执行：{WORKERS} 个任务依次进行"]
     t0 = time.perf_counter()
     for i in range(WORKERS):
@@ -45,7 +61,6 @@ def _run_threads(task, kind: str) -> tuple[float, list[str]]:
     with ThreadPoolExecutor(max_workers=WORKERS) as pool:
         for i in range(WORKERS):
             logs.append(f"thread-{i + 1}：已提交")
-        # pool.map 返回惰性迭代器；list(...) 消费全部结果，确保计时覆盖「任务全部完成」
         list(pool.map(task, range(WORKERS)))
     elapsed = time.perf_counter() - t0
     logs.append(f"多线程结束，耗时 {elapsed:.2f}s")
@@ -58,20 +73,39 @@ def _run_processes(task, kind: str) -> tuple[float, list[str]]:
     with ProcessPoolExecutor(max_workers=WORKERS) as pool:
         for i in range(WORKERS):
             logs.append(f"process-{i + 1}：已提交")
-        # 同上：list 强制等全部进程任务结束，再关闭进程池
         list(pool.map(task, range(WORKERS)))
     elapsed = time.perf_counter() - t0
     logs.append(f"多进程结束，耗时 {elapsed:.2f}s")
     return elapsed, logs
 
 
+def _run_coroutines(coro_factory, kind: str) -> tuple[float, list[str]]:
+    logs = [f"多协程：asyncio.gather，tasks={WORKERS}（{kind}）"]
+
+    async def _body() -> float:
+        t0 = time.perf_counter()
+        for i in range(WORKERS):
+            logs.append(f"coro-{i + 1}：已调度")
+        await asyncio.gather(
+            *(coro_factory(i) for i in range(WORKERS)),
+            return_exceptions=True,
+        )
+        return time.perf_counter() - t0
+
+    elapsed = asyncio.run(_body())
+    logs.append(f"多协程结束，耗时 {elapsed:.2f}s")
+    return elapsed, logs
+
+
 def run_io(mode: str) -> dict:
     if mode == "serial":
-        elapsed, logs = _run_serial(io_bound_task, "io")
+        elapsed, logs = _run_serial(io_bound_task)
     elif mode == "threads":
         elapsed, logs = _run_threads(io_bound_task, "IO")
     elif mode == "processes":
         elapsed, logs = _run_processes(io_bound_task, "IO")
+    elif mode == "coroutines":
+        elapsed, logs = _run_coroutines(io_bound_coro, "IO")
     else:
         raise ValueError(f"unknown mode: {mode}")
     return {"kind": "io", "mode": mode, "elapsed": round(elapsed, 4), "logs": logs}
@@ -79,11 +113,13 @@ def run_io(mode: str) -> dict:
 
 def run_cpu(mode: str) -> dict:
     if mode == "serial":
-        elapsed, logs = _run_serial(cpu_bound_task, "cpu")
+        elapsed, logs = _run_serial(cpu_bound_task)
     elif mode == "threads":
         elapsed, logs = _run_threads(cpu_bound_task, "CPU")
     elif mode == "processes":
         elapsed, logs = _run_processes(cpu_bound_task, "CPU")
+    elif mode == "coroutines":
+        elapsed, logs = _run_coroutines(cpu_bound_coro, "CPU")
     else:
         raise ValueError(f"unknown mode: {mode}")
     return {"kind": "cpu", "mode": mode, "elapsed": round(elapsed, 4), "logs": logs}

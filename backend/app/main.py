@@ -3,7 +3,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import calculator, candy, concurrency, main_child_thread
+from app.api import calculator, candy, concurrency, file_io, main_child_thread, sync_async
 
 app = FastAPI(title="GuideHub API", version="0.1.0")
 
@@ -23,6 +23,8 @@ app.include_router(
     prefix="/api/main-child-thread",
     tags=["main-child-thread"],
 )
+app.include_router(sync_async.router, prefix="/api/sync-async", tags=["sync-async"])
+app.include_router(file_io.router, prefix="/api/file-io", tags=["file-io"])
 
 
 @app.get("/api/health")
