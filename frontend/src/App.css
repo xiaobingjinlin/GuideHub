@@ -115,7 +115,7 @@
 .workspace {
   flex: 1;
   display: grid;
-  grid-template-columns: minmax(180px, 240px) 1fr;
+  grid-template-columns: minmax(240px, 300px) 1fr;
   gap: 1rem;
   padding: 1rem 1.25rem 1.5rem;
   min-height: 0;

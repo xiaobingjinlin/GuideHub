@@ -4,9 +4,12 @@ examples:
   - id: calculator
     title: 计算器
     ui: calculator
+    window:
+      width: 480
+      height: 720
     notes:
       - "类（class）：用类把显示值、累计值等状态和操作封装在一起，避免散落的全局变量。"
-      - "math 库：提供 sin/cos/log/pi 等；三角函数按弧度，本例先用 radians 把「度」转成弧度。"
+      - "math 模块：提供 sin/cos/log/pi 等；三角函数按弧度，本例先用 radians 把「度」转成弧度。"
       - "lambda 表达式：写成 lambda x: ... 的匿名短函数，适合作为一次性参数传给其它函数。"
       - "高阶函数：像 _unary 这样「接收函数 fn 再调用 fn(value)」的函数，就是高阶函数。"
       - "@staticmethod：表示该方法不依赖实例状态（不用 self），本质是挂在类上的普通函数。"
@@ -295,3 +298,208 @@ examples:
           c.input_digit("3")
           c.input_digit("0")
           print(c.sin())  # -> 0.5
+  - id: candy
+    title: 力扣算法-分发糖果
+    ui: candy
+    window:
+      width: 820
+      height: 900
+    problem:
+      link: "https://leetcode.cn/problems/candy/"
+      statement: |
+        n 个孩子站成一排。给你一个整数数组 ratings 表示每个孩子的评分。
+
+        你需要按照以下要求，给这些孩子分发糖果：
+
+        - 每个孩子至少分配到 1 个糖果。
+        - 相邻两个孩子中，评分更高的那个必须获得更多的糖果。
+
+        请你给每个孩子分发糖果，计算并返回需要准备的 最少 糖果数目。
+      hints:
+        - "n == ratings.length"
+        - "1 <= n <= 2 * 10^4"
+        - "0 <= ratings[i] <= 2 * 10^9"
+      examples:
+        - title: 示例 1
+          input: "输入：ratings = [1,0,2]"
+          output: "输出：5"
+          explanation: "解释：你可以分别给第一个、第二个、第三个孩子分发 2、1、2 颗糖果。"
+        - title: 示例 2
+          input: "输入：ratings = [1,2,2]"
+          output: "输出：4"
+          explanation: "解释：你可以分别给第一个、第二个、第三个孩子分发 1、2、1 颗糖果。第三个孩子只得到 1 颗糖果，这满足题面中的两个条件。"
+    notes:
+      - "列表乘法初始化：candies = [1] * n 得到长度为 n、元素全为 1 的列表。"
+      - "range(1, n)：左闭右开，取值 1…n-1，正好遍历除首元素外的下标。"
+      - "range(n-2, -1, -1)：从 n-2 倒序走到 0，用于从右往左扫描。"
+      - "内置函数 sum：sum(candies) 对列表中的数求和，得到最少糖果总数。"
+    code: |
+      # GuideHub · LeetCode 135. 分发糖果（Candy）
+      # 题目：n 个孩子站成一排，ratings[i] 为评分。
+      # 规则：
+      #   1. 每个孩子至少 1 颗糖
+      #   2. 评分比相邻孩子高的，必须比相邻的拿到更多糖
+      # 求：满足规则的最少糖果总数
+      # 链接：https://leetcode.cn/problems/candy/
+
+
+      class Solution:
+          def candy(self, ratings: list[int]) -> int:
+              """
+              两次贪心扫描求最少发糖数。
+
+              思路拆开左右约束，各自扫一遍比硬想「一次定生死」更稳：
+              - 左→右：只保证「比左边高 ⇒ 糖比左边多」
+              - 右→左：再保证「比右边高 ⇒ 糖比右边多」，并用 max 保住上一遍结果
+              """
+              n = len(ratings)
+              # 每人先发 1 颗，满足「至少一个」的硬性规则
+              candies = [1] * n
+
+              # —— 第一遍：从左到右 ——
+              # 只看与左邻居的关系；上升坡会形成 1,2,3,... 递增的糖
+              for i in range(1, n):
+                  if ratings[i] > ratings[i - 1]:
+                      candies[i] = candies[i - 1] + 1
+
+              # —— 第二遍：从右到左 ——
+              # 只看与右邻居的关系；若右边约束要求更多糖，用 max 抬高，
+              # 这样不会把左扫已经加好的值改小
+              for i in range(n - 2, -1, -1):
+                  if ratings[i] > ratings[i + 1]:
+                      candies[i] = max(candies[i], candies[i + 1] + 1)
+
+              # 所有位置糖数之和即为最少总数
+              return sum(candies)
+
+
+      if __name__ == "__main__":
+          s = Solution()
+          # 示例 1：ratings = [1,0,2] → 分配 [2,1,2]，总和 5
+          print(s.candy([1, 0, 2]))  # 5
+          # 示例 2：ratings = [1,2,2] → 分配 [1,2,1]，总和 4
+          # （中间与右边评分相等，右边可以比中间少）
+          print(s.candy([1, 2, 2]))  # 4
+  - id: concurrency-io
+    title: 多线程与多进程-IO密集型
+    ui: concurrency
+    kind: io
+    window:
+      width: 720
+      height: 820
+    notes:
+      - "多线程适合 IO 密集：等待时可切换线程，CPU 利用率通常高于纯顺序执行。"
+      - "time 模块：本例用 time.sleep 模拟阻塞 IO 等待，便于对比三种执行方式的耗时。"
+      - "time.perf_counter()：适合测量时间间隔，用结束时刻减开始时刻得到耗时。"
+      - "ThreadPoolExecutor / ProcessPoolExecutor：分别是线程池与进程池，接口相近便于对照。"
+      - "with：离开代码块时自动关闭线程池/进程池，无需手写繁琐的启停逻辑。"
+      - "list(pool.map(...))：map 返回惰性迭代器；list 强制取完所有结果，确保计时覆盖全部任务。"
+    code: |
+      # 对比：顺序执行 / 多线程 / 多进程 完成同一批「等待型」任务的耗时。
+      import time
+      from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
+
+      WORKERS = 4
+      IO_SLEEP = 0.4  # 秒，模拟一次网络/磁盘等待
+
+
+      def io_bound_task(task_id: int) -> str:
+          """模拟一次阻塞 IO：真正干活少，大部分时间在等。"""
+          time.sleep(IO_SLEEP)
+          return f"io-task-{task_id}-done"
+
+
+      def run_serial() -> float:
+          """顺序执行：任务一个接一个，等待时间近似累加。"""
+          t0 = time.perf_counter()
+          for i in range(WORKERS):
+              io_bound_task(i)
+          return time.perf_counter() - t0
+
+
+      def run_threads() -> float:
+          """多线程：多个线程同时进入 sleep，等待可重叠。"""
+          t0 = time.perf_counter()
+          with ThreadPoolExecutor(max_workers=WORKERS) as pool:
+              # pool.map 返回迭代器（惰性）：只迭代时才会等任务完成并取回结果
+              # 外包 list(...)：立刻消费全部结果，确保计时包含「全部任务跑完」
+              list(pool.map(io_bound_task, range(WORKERS)))
+          return time.perf_counter() - t0
+
+
+      def run_processes() -> float:
+          """多进程：也能并行等待，但进程比线程更重。"""
+          t0 = time.perf_counter()
+          with ProcessPoolExecutor(max_workers=WORKERS) as pool:
+              # 同上：list 强制等全部进程任务结束，再结束 with（关闭进程池）
+              list(pool.map(io_bound_task, range(WORKERS)))
+          return time.perf_counter() - t0
+
+
+      if __name__ == "__main__":
+          # 多进程在 Windows/macOS 上常用 spawn，必须放在 main 保护下
+          print(f"serial   : {run_serial():.2f}s")
+          print(f"threads  : {run_threads():.2f}s")
+          print(f"processes: {run_processes():.2f}s")
+  - id: concurrency-cpu
+    title: 多线程与多进程-CPU密集型
+    ui: concurrency
+    kind: cpu
+    window:
+      width: 720
+      height: 820
+    notes:
+      - "GIL：CPython 同一时刻通常只有一个线程执行字节码，CPU 密集时多线程往往难吃满多核。"
+      - "多进程适合 CPU 密集：各进程可并行使用多核，通常比多线程更快（但创建与通信更重）。"
+      - "ThreadPoolExecutor / ProcessPoolExecutor：本例用二者对照，观察 GIL 对耗时的影响。"
+      - "with：离开代码块时自动关闭线程池/进程池，无需手写繁琐的启停逻辑。"
+      - "list(pool.map(...))：map 返回惰性迭代器；list 强制取完所有结果，确保计时覆盖全部任务。"
+    code: |
+      # 对比：顺序执行 / 多线程 / 多进程 完成同一批「纯计算」任务的耗时。
+      import time
+      from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
+
+      WORKERS = 4
+      CPU_LOOPS = 3_000_000  # 可按机器快慢调整
+
+
+      def cpu_bound_task(task_id: int) -> int:
+          """模拟纯 CPU 计算：几乎不 IO，一直在算。"""
+          total = 0
+          for i in range(CPU_LOOPS):
+              total += i * i
+          return total + task_id
+
+
+      def run_serial() -> float:
+          """顺序执行：计算一个接一个。"""
+          t0 = time.perf_counter()
+          for i in range(WORKERS):
+              cpu_bound_task(i)
+          return time.perf_counter() - t0
+
+
+      def run_threads() -> float:
+          """多线程：受 GIL 影响，CPU 密集往往加速不明显。"""
+          t0 = time.perf_counter()
+          with ThreadPoolExecutor(max_workers=WORKERS) as pool:
+              # pool.map 返回迭代器（惰性）：只迭代时才会等任务完成并取回结果
+              # 外包 list(...)：立刻消费全部结果，确保计时包含「全部任务跑完」
+              list(pool.map(cpu_bound_task, range(WORKERS)))
+          return time.perf_counter() - t0
+
+
+      def run_processes() -> float:
+          """多进程：多核并行，通常明显更快。"""
+          t0 = time.perf_counter()
+          with ProcessPoolExecutor(max_workers=WORKERS) as pool:
+              # 同上：list 强制等全部进程任务结束，再结束 with（关闭进程池）
+              list(pool.map(cpu_bound_task, range(WORKERS)))
+          return time.perf_counter() - t0
+
+
+      if __name__ == "__main__":
+          print(f"serial   : {run_serial():.2f}s")
+          print(f"threads  : {run_threads():.2f}s")
+          print(f"processes: {run_processes():.2f}s")
+

@@ -75,8 +75,20 @@ function BackendApp() {
     ])
 
     const url = buildUserPageUrl(activeCategory.id, activeExample.id)
-    const features = 'popup=yes,width=440,height=640,menubar=no,toolbar=no,location=yes'
-    const popup = window.open(url, 'guidehub-user', features)
+    const width = activeExample.window?.width ?? 480
+    const height = activeExample.window?.height ?? 720
+    const features = [
+      'popup=yes',
+      `width=${width}`,
+      `height=${height}`,
+      'menubar=no',
+      'toolbar=no',
+      'location=yes',
+      'resizable=yes',
+      'scrollbars=yes',
+    ].join(',')
+    // 每个示例独立窗口名，便于套用各自默认宽高
+    const popup = window.open(url, `guidehub-user-${activeExample.id}`, features)
 
     if (!popup) {
       appendLog('弹窗被浏览器拦截，请允许本站弹出窗口后重试')
@@ -204,7 +216,11 @@ function BackendApp() {
                 className="note-area"
                 readOnly
                 spellCheck={false}
-                value={(activeExample?.notes ?? []).map((line, i) => `${i + 1}. ${line}`).join('\n')}
+                value={(activeExample?.notes ?? [])
+                  .map((line, i) =>
+                    line.startsWith('友情提示') ? line : `${i + 1}. ${line}`,
+                  )
+                  .join('\n')}
                 placeholder="选择左侧示例后，这里会显示知识点摘要"
               />
             )}

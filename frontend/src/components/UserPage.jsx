@@ -2,10 +2,14 @@ import { useEffect, useMemo } from 'react'
 import { loadCategories } from '../data/loadTutorials'
 import { postSessionEvent, postUserLog } from '../lib/runtimeChannel'
 import Calculator from './Calculator'
+import Candy from './Candy'
+import Concurrency from './Concurrency'
 import './UserPage.css'
 
 const UI_MAP = {
   calculator: Calculator,
+  candy: Candy,
+  concurrency: Concurrency,
 }
 
 export default function UserPage({ categoryId, exampleId }) {
@@ -36,14 +40,21 @@ export default function UserPage({ categoryId, exampleId }) {
   const UserUI = UI_MAP[example.ui] || null
 
   return (
-    <div className="user-page">
+    <div className={`user-page ${example.ui === 'concurrency' ? 'is-concurrency' : ''}`}>
       <div className="user-page-atmosphere" aria-hidden="true" />
-      <header className="user-page-header">
-        <h1>{example.title}</h1>
-      </header>
+      {example.ui !== 'concurrency' && (
+        <header className="user-page-header">
+          <h1>{example.title}</h1>
+        </header>
+      )}
       <main className="user-page-body">
         {UserUI ? (
-          <UserUI onLog={(message) => postUserLog(message)} />
+          <UserUI
+            onLog={(message) => postUserLog(message)}
+            problem={example.problem}
+            kind={example.kind}
+            title={example.title}
+          />
         ) : (
           <p className="user-page-empty">该示例暂未绑定可交互界面。</p>
         )}

@@ -1,6 +1,6 @@
 import { load as loadYaml } from 'js-yaml'
 
-const rawModules = import.meta.glob('../../db/*.yaml', {
+const rawModules = import.meta.glob('../../../db/*.yaml', {
   query: '?raw',
   import: 'default',
   eager: true,
@@ -24,6 +24,19 @@ export function loadCategories() {
           code: (ex.code || '').replace(/\n$/, ''),
           ui: ex.ui || null,
           notes: Array.isArray(ex.notes) ? ex.notes : [],
+          kind: ex.kind || null,
+          window: {
+            width: ex.window?.width || 480,
+            height: ex.window?.height || 720,
+          },
+          problem: ex.problem
+            ? {
+                link: ex.problem.link || '',
+                statement: (ex.problem.statement || '').trim(),
+                hints: Array.isArray(ex.problem.hints) ? ex.problem.hints : [],
+                examples: Array.isArray(ex.problem.examples) ? ex.problem.examples : [],
+              }
+            : null,
         })),
       }
     })

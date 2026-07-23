@@ -1,16 +1,44 @@
-# React + Vite
+# GuideHub
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Vite + React 前端，FastAPI 后端。教程数据在 `db/`。
 
-Currently, two official plugins are available:
+## 目录
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+```text
+frontend/   # 前端
+backend/    # FastAPI 后端
+db/         # 各分类 yaml 示例数据
+```
 
-## React Compiler
+## 启动
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### 后端
 
-## Expanding the Oxlint configuration
+```bash
+cd backend
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+### 前端
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+浏览器打开 http://127.0.0.1:5173/  
+前端通过代理访问 `/api/*` → `http://127.0.0.1:8000`。
+
+## API 概览
+
+| 路径 | 说明 |
+| --- | --- |
+| `POST /api/calculator/action` | 计算器按键（后端 `Calculator` 类） |
+| `POST /api/candy/solve` | 分发糖果（后端 `Solution.candy`） |
+| `POST /api/concurrency/io` | IO 密集：serial / threads / processes |
+| `POST /api/concurrency/cpu` | CPU 密集：serial / threads / processes |
+| `GET /api/health` | 健康检查 |
