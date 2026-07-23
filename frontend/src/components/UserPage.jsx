@@ -4,12 +4,14 @@ import { postSessionEvent, postUserLog } from '../lib/runtimeChannel'
 import Calculator from './Calculator'
 import Candy from './Candy'
 import Concurrency from './Concurrency'
+import MainChildThread from './MainChildThread'
 import './UserPage.css'
 
 const UI_MAP = {
   calculator: Calculator,
   candy: Candy,
   concurrency: Concurrency,
+  'main-child-thread': MainChildThread,
 }
 
 export default function UserPage({ categoryId, exampleId }) {
@@ -40,9 +42,9 @@ export default function UserPage({ categoryId, exampleId }) {
   const UserUI = UI_MAP[example.ui] || null
 
   return (
-    <div className={`user-page ${example.ui === 'concurrency' ? 'is-concurrency' : ''}`}>
+    <div className={`user-page ${example.ui === 'concurrency' || example.ui === 'main-child-thread' ? 'is-concurrency' : ''}`}>
       <div className="user-page-atmosphere" aria-hidden="true" />
-      {example.ui !== 'concurrency' && (
+      {example.ui !== 'concurrency' && example.ui !== 'main-child-thread' && (
         <header className="user-page-header">
           <h1>{example.title}</h1>
         </header>

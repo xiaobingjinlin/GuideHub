@@ -39,3 +39,10 @@ export function postConcurrency(kind, mode) {
     body: JSON.stringify({ mode }),
   })
 }
+
+export function postMainChildThread(mode) {
+  return request("/api/main-child-thread/run", {
+    method: "POST",
+    body: JSON.stringify({ mode }),
+  })
+}

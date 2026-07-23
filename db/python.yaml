@@ -503,3 +503,75 @@ examples:
           print(f"threads  : {run_threads():.2f}s")
           print(f"processes: {run_processes():.2f}s")
 
+  - id: main-child-thread
+    title: 主线程与子线程
+    ui: main-child-thread
+    window:
+      width: 720
+      height: 820
+    notes:
+      - "threading.Thread：用 target 指定目标函数创建子线程实例，再 start() 才会真正跑起来。"
+      - "daemon=True：主程序退出时该子线程会被粗暴回收，不保证跑完或优雅收尾。"
+      - "t.join()：让当前线程停下来，等到子线程 t 跑完再继续（演示里用于等任务完成再比总耗时）。"
+      - "何时不必 join：主线程工作远长于子线程，或即将退出的 daemon 场景，往往不必再 join。"
+    code: |
+      # GuideHub · 主线程与子线程
+      # 对比：单线程串行（阻塞相加） vs 主子线程并行（墙钟取 max；daemon 粗暴回收）
+      import threading
+      import time
+      from concurrent.futures import ThreadPoolExecutor
+
+      WORKERS = 4
+      IO_SLEEP = 0.4
+      MAIN_WORK_SLEEP = 0.5
+
+
+      def with_blocking_work() -> None:
+          """
+          with 会阻塞当前线程：
+          只有线程池任务全部结束，才会离开 with 代码块。
+          """
+          with ThreadPoolExecutor(max_workers=2) as pool:
+              # list 强制等全部任务完成，with 才能退出
+              list(pool.map(lambda _i: time.sleep(IO_SLEEP), range(WORKERS)))
+
+
+      def main_business_work() -> None:
+          """模拟主线程后续业务（UI / 继续处理）。"""
+          time.sleep(MAIN_WORK_SLEEP)
+
+
+      def run_single() -> None:
+          """单线程：先 with 再业务 → 总时长相加，with 期间主线程被堵住。"""
+          print("单线程：进入 with …")
+          with_blocking_work()
+          print("单线程：离开 with，再做业务 …")
+          main_business_work()
+          print("单线程：全部结束（耗时 ≈ with + 业务）")
+
+
+      def run_main_child() -> None:
+          """
+          主子线程：daemon 子线程跑 with，主线程并行做业务。
+          daemon=True：主程序退出时子线程会被粗暴回收。
+          """
+          def target() -> None:
+              print("子线程：进入 with …")
+              with_blocking_work()
+              print("子线程：离开 with")
+
+          t = threading.Thread(target=target, daemon=True)
+          t.start()
+          print("主线程：已继续，同步做业务（几乎不被 with 阻塞）")
+          main_business_work()
+          # 演示里 join 便于观察总耗时；真实退出场景通常不 join daemon
+          t.join()
+          print("主子线程：全部结束（耗时 ≈ max(with, 业务)）")
+
+
+      if __name__ == "__main__":
+          print("=== 方式 A：单线程 ===")
+          run_single()
+          print("=== 方式 B：主子线程 ===")
+          run_main_child()
+
