@@ -1,0 +1,31 @@
+category: langgraph
+label: LangGraph
+examples:
+  - id: langgraph-text-chat-bot
+    title: 文本对话机器人
+    ui: langgraph-text-chat-bot
+    window:
+      width: 1100
+      height: 760
+    notes:
+      - "ChatState：messages（add_messages）+ did_compress；ensure_system 把 SystemMessage 写入 checkpoint。"
+      - "SqliteSaver + WAL：按 thread_id 持久化；连接开启 journal_mode=WAL。"
+      - "graph.stream(stream_mode=\"messages\")：经 assistant 流出 ChatQwen 的 token/reasoning。"
+      - "compress 节点：满 20 轮混合压缩写回状态；finalize 只读 did_compress。"
+      - "终止回滚：发送前记下 checkpoint_id，取消后时间旅行 fork 回 tip（非手写消息快照）。"
+      - "图结构：START → ensure_system → assistant → compress → END；见下方「图结构」页签。"
+    # 后台「图结构」页签：Vite public 下的静态 PNG（由 export_graph_png 生成）
+    graphImage: /guidehub/langgraph-text-chat-graph.png
+    files:
+      - name: langgraph_text_chat.py
+        path: backend/app/examples/langgraph_text_chat.py
+      - name: chat_qwen.py
+        path: backend/app/examples/chat_qwen.py
+      - name: chat_common.py
+        path: backend/app/examples/chat_common.py
+      - name: chat_compress.py
+        path: backend/app/examples/chat_compress.py
+      - name: text_chat_gradio.py
+        path: backend/app/examples/text_chat_gradio.py
+      - name: langgraph_text_chat_ui.py
+        path: backend/app/examples/langgraph_text_chat_ui.py
