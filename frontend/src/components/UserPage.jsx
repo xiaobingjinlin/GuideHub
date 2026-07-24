@@ -7,10 +7,14 @@ import Concurrency from './Concurrency'
 import FileIO from './FileIO'
 import MainChildThread from './MainChildThread'
 import SyncAsync from './SyncAsync'
+import TextChatBot from './TextChatBot'
+import LangGraphTextChatBot from './LangGraphTextChatBot'
 import './UserPage.css'
 
 const RACE_UIS = new Set(['concurrency', 'main-child-thread', 'sync-async'])
-const CUSTOM_HERO_UIS = new Set([...RACE_UIS, 'file-io'])
+const GRADIO_UIS = new Set(['text-chat-bot', 'langgraph-text-chat-bot'])
+const CUSTOM_HERO_UIS = new Set([...RACE_UIS, 'file-io', ...GRADIO_UIS])
+const FULL_BLEED_UIS = new Set([...RACE_UIS, ...GRADIO_UIS])
 
 const UI_MAP = {
   calculator: Calculator,
@@ -19,7 +23,10 @@ const UI_MAP = {
   'main-child-thread': MainChildThread,
   'sync-async': SyncAsync,
   'file-io': FileIO,
+  'text-chat-bot': TextChatBot,
+  'langgraph-text-chat-bot': LangGraphTextChatBot,
 }
+
 
 export default function UserPage({ categoryId, exampleId }) {
   const example = useMemo(() => {
@@ -49,14 +56,14 @@ export default function UserPage({ categoryId, exampleId }) {
   const UserUI = UI_MAP[example.ui] || null
 
   return (
-    <div className={`user-page ${RACE_UIS.has(example.ui) ? 'is-concurrency' : ''}`}>
+    <div className={`user-page ${FULL_BLEED_UIS.has(example.ui) ? 'is-concurrency' : ''}`}>
       <div className="user-page-atmosphere" aria-hidden="true" />
       {!CUSTOM_HERO_UIS.has(example.ui) && (
         <header className="user-page-header">
           <h1>{example.title}</h1>
         </header>
       )}
-      <main className="user-page-body">
+      <main className={`user-page-body ${GRADIO_UIS.has(example.ui) ? 'is-gradio' : ''}`}>
         {UserUI ? (
           <UserUI
             onLog={(message) => postUserLog(message)}

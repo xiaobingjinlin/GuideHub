@@ -1,0 +1,32 @@
+category: langchain
+label: LangChain
+examples:
+  - id: text-chat-bot
+    title: 文本对话机器人
+    ui: text-chat-bot
+    window:
+      width: 1100
+      height: 760
+    notes:
+      - "SqliteChatMessageHistory：自研 BaseChatMessageHistory + 复用 SQLite 连接；替代已日落的 langchain-community。"
+      - "ChatPromptTemplate：system + history 占位 + human 组装本轮上下文，与落库历史同源。"
+      - "ChatQwen（langchain-qwq）：Qwen3 专用 ChatModel；ChatOpenAI.stream 会丢 reasoning_content，故不用它做思考流式。"
+      - "trim_messages：送模型前按字数预算裁剪上下文；轮数窗口仍由 chat_compress 混合摘要负责。"
+      - "stream + yield：ChatQwen.stream 先出 additional_kwargs.reasoning_content，再出 content；成功后 add_messages 一次落库。"
+      - "对话收尾：iter_chain_stream → finalize_after_turn（空回复兜底、按需压缩、刷新右侧历史）。"
+    # 重要源码页签（path 相对仓库根，构建时读真实文件）
+    files:
+      - name: langchain_text_chat.py
+        path: backend/app/examples/langchain_text_chat.py
+      - name: sqlite_chat_history.py
+        path: backend/app/examples/sqlite_chat_history.py
+      - name: chat_compress.py
+        path: backend/app/examples/chat_compress.py
+      - name: chat_common.py
+        path: backend/app/examples/chat_common.py
+      - name: chat_qwen.py
+        path: backend/app/examples/chat_qwen.py
+      - name: text_chat_gradio.py
+        path: backend/app/examples/text_chat_gradio.py
+      - name: langchain_text_chat_ui.py
+        path: backend/app/examples/langchain_text_chat_ui.py

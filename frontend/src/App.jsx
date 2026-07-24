@@ -23,8 +23,24 @@ function BackendApp() {
 
   const [consoleLines, setConsoleLines] = useState([])
   const [userWindowOpen, setUserWindowOpen] = useState(false)
-  const [bottomTab, setBottomTab] = useState('console') // console | notes
+  const [bottomTab, setBottomTab] = useState('console') // console | notes | graph
+  const [codeFileId, setCodeFileId] = useState(null)
   const userWindowRef = useRef(null)
+
+  const codeFiles = activeExample?.files ?? []
+  const activeCodeFile =
+    codeFiles.find((f) => f.id === codeFileId) ?? codeFiles[0] ?? null
+  const hasGraphImage = Boolean(activeExample?.graphImage)
+
+  useEffect(() => {
+    setCodeFileId(activeExample?.files?.[0]?.id ?? null)
+  }, [activeExample?.id])
+
+  useEffect(() => {
+    if (bottomTab === 'graph' && !hasGraphImage) {
+      setBottomTab('notes')
+    }
+  }, [bottomTab, hasGraphImage, activeExample?.id])
 
   const appendLog = useCallback((message) => {
     setConsoleLines((prev) => [...prev, `[${timestamp()}] ${message}`])
@@ -148,84 +164,121 @@ function BackendApp() {
           </ul>
         </aside>
 
-        <section className="editor-pane">
-          <div className="panel code-panel">
-            <div className="panel-head">
-              <h1>{activeExample?.title ?? '选择示例'}</h1>
-              <div className="panel-head-right">
-                {userWindowOpen && <span className="backend-badge">后台页面</span>}
-                <span className="panel-meta">代码</span>
-              </div>
-            </div>
-            <div className="code-area-wrap">
-              <textarea
-                className="code-area"
-                readOnly
-                spellCheck={false}
-                value={activeExample?.code ?? ''}
-                placeholder="选择左侧示例后，这里会显示带注释的示例代码"
-              />
-              <button
-                type="button"
-                className="run-button"
-                onClick={handleRun}
-                disabled={!activeExample}
-              >
-                <span className="run-icon" aria-hidden="true">
-                  ▶
-                </span>
-                运行
-              </button>
+        <div className="panel code-panel">
+          <div className="panel-head">
+            <h1>{activeExample?.title ?? '选择示例'}</h1>
+            <div className="panel-head-right">
+              {userWindowOpen && <span className="backend-badge">后台页面</span>}
+              <span className="panel-meta">代码</span>
             </div>
           </div>
-
-          <div className={`panel bottom-panel is-${bottomTab}`}>
-            <div className="panel-head bottom-tabs" role="tablist" aria-label="下方面板">
-              <button
-                type="button"
-                role="tab"
-                aria-selected={bottomTab === 'console'}
-                className={`bottom-tab ${bottomTab === 'console' ? 'is-active' : ''}`}
-                onClick={() => setBottomTab('console')}
-              >
-                控制台
-              </button>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={bottomTab === 'notes'}
-                className={`bottom-tab ${bottomTab === 'notes' ? 'is-active' : ''}`}
-                onClick={() => setBottomTab('notes')}
-              >
-                知识便利贴
-              </button>
-              <span className="panel-meta">
-                {bottomTab === 'console' ? '前后台交互' : '笔记'}
+          {codeFiles.length > 1 && (
+            <div className="code-file-tabs" role="tablist" aria-label="代码文件">
+              {codeFiles.map((file) => (
+                <button
+                  key={file.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={file.id === activeCodeFile?.id}
+                  className={`code-file-tab ${file.id === activeCodeFile?.id ? 'is-active' : ''}`}
+                  onClick={() => setCodeFileId(file.id)}
+                >
+                  {file.name}
+                </button>
+              ))}
+            </div>
+          )}
+          <div className="code-area-wrap">
+            <textarea
+              className="code-area"
+              readOnly
+              spellCheck={false}
+              value={activeCodeFile?.content ?? activeExample?.code ?? ''}
+              placeholder="选择左侧示例后，这里会显示带注释的示例代码"
+            />
+            <button
+              type="button"
+              className="run-button"
+              onClick={handleRun}
+              disabled={!activeExample}
+            >
+              <span className="run-icon" aria-hidden="true">
+                ▶
               </span>
-            </div>
-            {bottomTab === 'console' ? (
-              <textarea
-                className="console-area"
-                readOnly
-                spellCheck={false}
-                value={consoleLines.join('\n')}
-                placeholder="点击「运行」后，每次计算操作会显示在这里"
-              />
-            ) : (
-              <textarea
-                className="note-area"
-                readOnly
-                spellCheck={false}
-                value={(activeExample?.notes ?? [])
-                  .map((line, i) =>
-                    line.startsWith('友情提示') ? line : `${i + 1}. ${line}`,
-                  )
-                  .join('\n')}
-                placeholder="选择左侧示例后，这里会显示知识点摘要"
-              />
-            )}
+              运行
+            </button>
           </div>
-        </section>
+        </div>
+
+        <div className={`panel utility-panel is-${bottomTab}`}>
+          <div className="panel-head bottom-tabs" role="tablist" aria-label="侧方面板">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={bottomTab === 'console'}
+              className={`bottom-tab ${bottomTab === 'console' ? 'is-active' : ''}`}
+              onClick={() => setBottomTab('console')}
+            >
+              控制台
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={bottomTab === 'notes'}
+              className={`bottom-tab ${bottomTab === 'notes' ? 'is-active' : ''}`}
+              onClick={() => setBottomTab('notes')}
+            >
+              知识便利贴
+            </button>
+            {hasGraphImage && (
+              <button
+                type="button"
+                role="tab"
+                aria-selected={bottomTab === 'graph'}
+                className={`bottom-tab ${bottomTab === 'graph' ? 'is-active' : ''}`}
+                onClick={() => setBottomTab('graph')}
+              >
+                图结构
+              </button>
+            )}
+            <span className="panel-meta">
+              {bottomTab === 'console'
+                ? '前后台交互'
+                : bottomTab === 'graph'
+                  ? 'LangGraph'
+                  : '笔记'}
+            </span>
+          </div>
+          {bottomTab === 'console' ? (
+            <textarea
+              className="console-area"
+              readOnly
+              spellCheck={false}
+              value={consoleLines.join('\n')}
+              placeholder="点击「运行」后，每次计算操作会显示在这里"
+            />
+          ) : bottomTab === 'graph' ? (
+            <div className="graph-area">
+              <img
+                className="graph-image"
+                src={activeExample.graphImage}
+                alt={`${activeExample.title} 图结构`}
+              />
+            </div>
+          ) : (
+            <textarea
+              className="note-area"
+              readOnly
+              spellCheck={false}
+              value={(activeExample?.notes ?? [])
+                .map((line, i) =>
+                  line.startsWith('友情提示') ? line : `${i + 1}. ${line}`,
+                )
+                .join('\n')}
+              placeholder="选择左侧示例后，这里会显示知识点摘要"
+            />
+          )}
+        </div>
       </main>
     </div>
   )

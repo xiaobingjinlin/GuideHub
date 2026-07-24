@@ -1,10 +1,12 @@
 .app {
   position: relative;
+  height: 100vh;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
   color: var(--ink);
   isolation: isolate;
+  overflow: hidden;
 }
 
 .app-atmosphere {
@@ -115,7 +117,8 @@
 .workspace {
   flex: 1;
   display: grid;
-  grid-template-columns: minmax(240px, 300px) 1fr;
+  /* 菜单 : 代码 : 控制台 = 1 : 2 : 1 */
+  grid-template-columns: 1fr 2fr 1fr;
   gap: 1rem;
   padding: 1rem 1.25rem 1.5rem;
   min-height: 0;
@@ -128,6 +131,10 @@
   border-radius: 16px;
   padding: 1rem 0.85rem;
   backdrop-filter: blur(10px);
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
 }
 
 .sidebar-label {
@@ -179,17 +186,11 @@
   font-size: 0.9rem;
 }
 
-.editor-pane {
-  display: grid;
-  grid-template-rows: minmax(240px, 1.4fr) minmax(180px, 0.9fr);
-  gap: 0.75rem;
-  min-height: calc(100vh - 6.5rem);
-}
-
 .panel {
   display: flex;
   flex-direction: column;
   min-height: 0;
+  min-width: 0;
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 16px;
@@ -230,6 +231,43 @@
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--muted);
+}
+
+.code-file-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  padding: 0 0.85rem 0.55rem;
+  border-bottom: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.28);
+}
+
+.code-file-tab {
+  appearance: none;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.32rem 0.7rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.code-file-tab:hover {
+  color: var(--ink);
+  background: rgba(21, 35, 31, 0.05);
+}
+
+.code-file-tab.is-active {
+  color: var(--accent-deep);
+  background: rgba(15, 118, 110, 0.12);
+  border-color: rgba(15, 118, 110, 0.22);
 }
 
 .code-area-wrap {
@@ -297,36 +335,67 @@
   border-color: rgba(15, 118, 110, 0.22);
 }
 
-.bottom-panel .panel-meta {
+.bottom-panel .panel-meta,
+.utility-panel .panel-meta {
   margin-left: auto;
 }
 
-.bottom-panel.is-notes {
+.bottom-panel.is-notes,
+.utility-panel.is-notes {
   background: linear-gradient(180deg, #fff8c9 0%, #f5e9a0 100%);
   border-color: rgba(180, 150, 40, 0.28);
 }
 
-.bottom-panel.is-notes .panel-head {
+.bottom-panel.is-notes .panel-head,
+.utility-panel.is-notes .panel-head {
   border-bottom-color: rgba(180, 150, 40, 0.22);
 }
 
-.bottom-panel.is-notes .bottom-tab {
+.bottom-panel.is-notes .bottom-tab,
+.utility-panel.is-notes .bottom-tab {
   color: #7a6824;
 }
 
-.bottom-panel.is-notes .bottom-tab:hover {
+.bottom-panel.is-notes .bottom-tab:hover,
+.utility-panel.is-notes .bottom-tab:hover {
   color: #3d3414;
   background: rgba(107, 90, 26, 0.08);
 }
 
-.bottom-panel.is-notes .bottom-tab.is-active {
+.bottom-panel.is-notes .bottom-tab.is-active,
+.utility-panel.is-notes .bottom-tab.is-active {
   color: #3d3414;
   background: rgba(255, 255, 255, 0.55);
   border-color: rgba(180, 150, 40, 0.35);
 }
 
-.bottom-panel.is-notes .panel-meta {
+.bottom-panel.is-notes .panel-meta,
+.utility-panel.is-notes .panel-meta {
   color: #6b5a1a;
+}
+
+.bottom-panel.is-graph,
+.utility-panel.is-graph {
+  background: linear-gradient(180deg, #f7faf9 0%, #eef5f3 100%);
+}
+
+.graph-area {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.graph-image {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 1px 0 rgba(21, 35, 31, 0.06);
 }
 
 .note-area {
@@ -427,6 +496,26 @@
   }
 }
 
+.bottom-tabs {
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  row-gap: 0.35rem;
+}
+
+.utility-panel .panel-meta {
+  flex-basis: 100%;
+  margin-left: 0;
+  order: 10;
+}
+
+@media (min-width: 1200px) {
+  .utility-panel .panel-meta {
+    flex-basis: auto;
+    margin-left: auto;
+    order: 0;
+  }
+}
+
 @media (max-width: 860px) {
   .topbar {
     flex-direction: column;
@@ -438,13 +527,21 @@
     justify-content: flex-start;
   }
 
+  .app {
+    height: auto;
+    min-height: 100vh;
+    overflow: auto;
+  }
+
   .workspace {
     grid-template-columns: 1fr;
+    grid-template-rows: auto minmax(280px, 50vh) minmax(220px, 40vh);
     padding: 0.85rem;
   }
 
   .sidebar {
     padding: 0.85rem;
+    overflow: visible;
   }
 
   .example-list {
@@ -454,10 +551,5 @@
 
   .example-item {
     width: auto;
-  }
-
-  .editor-pane {
-    min-height: auto;
-    grid-template-rows: 280px 200px;
   }
 }
